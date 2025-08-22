@@ -67,15 +67,17 @@ certs:
 
 GETTEXT = $(XGETTEXT) --from-code=UTF-8 --language=JavaScript --keyword=__ --keyword=___ --keyword=i18n_ --force-po --output=src/i18n/converse.pot --package-name=Converse.js --copyright-holder="Jan-Carel Brand" --package-version=11.0.1 dist/converse-no-dependencies.js -c
 
-.PHONY: pot
-pot: dist/converse-no-dependencies.js
+src/i18n/converse.pot: dist/converse-no-dependencies.js
 	$(GETTEXT) 2>&1 > /dev/null; exit $$?;
 	rm dist/converse-no-dependencies.js
 	rm dist/tmp.css
 
+.PHONY: pot
+pot: src/i18n/converse.pot
+
 .PHONY: po
 po:
-	find ./src/i18n/locales -maxdepth 1 -mindepth 1 -type d -exec msgmerge {}/LC_MESSAGES/converse.po ./src/i18n/converse.pot -U \;
+	find ./src/i18n -maxdepth 1 -mindepth 1 -type d -exec msgmerge {}/LC_MESSAGES/converse.po ./src/i18n/converse.pot -U \;
 
 ########################################################################
 ## Release management
@@ -154,7 +156,7 @@ devserver: node_modules
 ########################################################################
 ## Builds
 
-dist/converse-no-dependencies.js: src rspack/rspack.common.js rspack/rspack.nodeps.js @converse/headless node_modules
+dist/converse-no-dependencies.js: src webpack/webpack.common.js webpack/webpack.nodeps.js @converse/headless node_modules
 	npm run nodeps
 
 dist/converse.js:: node_modules
@@ -195,10 +197,10 @@ logo/conversejs-filled%.png:: logo/conversejs-filled.svg
 
 @converse/headless: src/headless
 
-src/headless/dist/converse-headless.js: src rspack/rspack.common.js node_modules @converse/headless
+src/headless/dist/converse-headless.js: src webpack/webpack.common.js node_modules @converse/headless
 	npm run headless-dev
 
-src/headless/dist/converse-headless.min.js: src rspack/rspack.common.js node_modules @converse/headless
+src/headless/dist/converse-headless.min.js: src webpack/webpack.common.js node_modules @converse/headless
 	npm run headless
 
 dist:: node_modules src/**/* | dist/website.css dist/website.min.css
@@ -240,15 +242,10 @@ eslint: node_modules
 	npm run lint
 
 .PHONY: check
-check: eslint | src/headless/dist/converse-headless.js dist/converse.js dist/converse.css
+check: eslint | dist/converse.js dist/converse.css
 	npm run types
 	make check-git-clean
-	cd src/headless && npm run test -- --single-run
-	npm run test -- --single-run
-
-.PHONY: test-headless
-test-headless:
-	cd src/headless && npm run test -- $(ARGS)
+	npm run test -- $(ARGS)
 
 .PHONY: test
 test:
